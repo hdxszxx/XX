@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="    
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd  
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd  
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd  
+        http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee-3.2.xsd  
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+
+	<!-- 开启注解 -->
+	<context:annotation-config />
+
+	<!-- 指定注解扫描的位置 -->
+	<context:component-scan base-package="com.XX.xx" />
+
+	<!-- 导入配置文件 -->
+	<context:property-placeholder location="classpath:config/db.properties" />
+
+	<!-- 配置数据库连接 -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="username" value="${connection.username}"></property>
+		<property name="password" value="${connection.password}"></property>
+		<property name="url" value="${connection.url}"></property>
+		<property name="driverClassName" value="${connection.driverClassName}"></property>
+		<!-- 初始化连接大小 -->
+		<property name="initialSize" value="${connection.initialSize}"></property>
+		<!-- 连接池最大连接数量 -->
+		<property name="maxActive" value="${connection.maxActive}"></property>
+		<!-- 连接池最大空闲 连接数量 -->
+		<property name="maxIdle" value="${connection.maxIdle}"></property>
+		<!-- 连接池最小空闲连接数量 -->
+		<property name="minIdle" value="${connection.minIdle}"></property>
+		<!-- 获取连接最大等待时间 -->
+		<property name="maxWait" value="${connection.maxWait}"></property>
+		<!-- 是否超时自动回收连接 -->
+		<property name="removeAbandoned" value="${connection.removeAbandoned}"></property>
+		<!-- 超时自动回收连接时间 -->
+		<property name="removeAbandonedTimeout" value="${connection.removeAbandonedTimeout}"></property>
+		<!-- 连接泄露打印日志 -->
+		<property name="logAbandoned" value="${connection.logAbandoned}"></property>
+		<!-- 在空闲连接回收器线程运行期间休眠的时间值,以毫秒为单位. -->
+		<property name="timeBetweenEvictionRunsMillis" value="${connection.timeBetweenEvictionRunsMillis}" />
+		<!-- 在每次空闲连接回收器线程(如果有)运行时检查的连接数量 -->
+		<property name="numTestsPerEvictionRun" value="${connection.numTestsPerEvictionRun}" />
+		<!-- 1000 * 60 * 30 连接在池中保持空闲而不被空闲连接回收器线程 -->
+		<property name="minEvictableIdleTimeMillis" value="${connection.minEvictableIdleTimeMillis}" />
+		<property name="validationQuery" value="${connection.validationQuery}" />
+	</bean>
+	
+	<!--  配置Mybatis的sqlSessionFactory  -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="configLocation" value="classpath:config/mybatis-config.xml"/>        
+        <property name="mapperLocations" value="classpath:mappers/*.xml"/>
+	</bean>
+	
+	<!--  Mapper接口所在包名，Spring会自动查找其下的Mapper -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.ph.placeHistory.dao"/>
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+	</bean>
+	
+	<!-- 配置transactionManager事务管理器 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    
+     <!-- 配置事物通知属性 -->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <!-- 定义事物传播特性 -->
+        <tx:attributes>
+            <tx:method name="insert" propagation="REQUIRED"/>
+            <tx:method name="update*" propagation="REQUIRED" />  
+            <tx:method name="edit*" propagation="REQUIRED" />  
+            <tx:method name="save*" propagation="REQUIRED" />  
+            <tx:method name="add*" propagation="REQUIRED" />  
+            <tx:method name="new*" propagation="REQUIRED" />  
+            <tx:method name="set*" propagation="REQUIRED" />  
+            <tx:method name="remove*" propagation="REQUIRED" />  
+            <tx:method name="delete*" propagation="REQUIRED" />  
+            <tx:method name="change*" propagation="REQUIRED" />  
+            <tx:method name="check*" propagation="REQUIRED" />  
+            <tx:method name="get*" propagation="REQUIRED"  />  
+            <tx:method name="find*" propagation="REQUIRED" read-only="true" />  
+            <tx:method name="load*" propagation="REQUIRED" read-only="true" />  
+            <tx:method name="*" propagation="REQUIRED"  />  
+        </tx:attributes>
+    </tx:advice>
+    
+    <!-- 配置事物切面 -->
+    <aop:config>
+        <aop:pointcut expression="execution(* com.ph.placeHistory.service.impl*..*.*(..))" id="serviceOperation"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="serviceOperation"/>
+    </aop:config>
+</beans>
